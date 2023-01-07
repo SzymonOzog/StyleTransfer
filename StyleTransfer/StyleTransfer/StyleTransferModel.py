@@ -6,21 +6,14 @@ import cv2
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class StyleTransferModel():
-    def __init__(self, content_image, style_image):
+    def __init__(self):
         super(StyleTransferModel, self).__init__()
         self.model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg19', pretrained=True).features
         self.model.eval()
         self.model.to(device)
-
-        size = 512 if device == "cuda" else 128
-        self.content_image = cv2.resize(content_image, (size, size)) / 255.0
-        self.style_image = cv2.resize(style_image, (size, size)) / 255.0
         
         self.content_loss_weight = 1e0
         self.style_loss_weight = 1e7
-
-        self.content_image = content_image.copy()
-        self.style_image = style_image.copy()
         
         self.cnn_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
         self.cnn_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
@@ -38,6 +31,17 @@ class StyleTransferModel():
         self.model[11].register_forward_hook(get_activation("style2", self))
         self.model[19].register_forward_hook(get_activation("style3", self))
         self.model[29].register_forward_hook(get_activation("style4", self))
+
+
+    def set_style_image(self, style_image):
+        size = 512 if device == "cuda" else 128
+        self.style_image = cv2.resize(style_image.copy(), (size, size)) / 255.0
+
+
+    def set_content_image(self, content_image):
+        size = 512 if device == "cuda" else 128
+        self.content_image = cv2.resize(content_image.copy(), (size, size)) / 255.0
+
         
     def transfer_image(self, iters):
         self.content_image = torch.tensor(self.content_image, requires_grad=True).permute(2, 0, 1).unsqueeze(0).float().to(device)

@@ -1,14 +1,23 @@
-
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QHBoxLayout, QVBoxLayout, QSlider, QFileDialog, QGraphicsView, QGraphicsScene, QWidget, QFrame
-from PyQt5.QtGui import QPixmap, QPainter
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QHBoxLayout, QVBoxLayout, QSlider, QFileDialog, QGraphicsView, QGraphicsScene, QWidget, QFrame, QPushButton
+from PyQt5.QtGui import QPixmap, QPainter, QImage
 from PyQt5.QtCore import Qt, QMimeData
+from StyleTransferModel import StyleTransferModel as TModel
+import cv2 as cv
+
+def convert_cv_to_Qt(cvImg):
+    height, width, channel = cvImg.shape
+    bytesPerLine = 3 * width
+    ret = QPixmap()
+    ret.convertFromImage(QImage(cvImg.data, width, height, bytesPerLine, QImage.Format_RGB888))
+    return ret
 
 class DropLabel(QLabel):
     def __init__(self):
         super().__init__()
         self.setFrameShape(QFrame.Box)
         self.setAcceptDrops(True)
+        self.has_image = False
 
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
@@ -21,6 +30,8 @@ class DropLabel(QLabel):
             e.accept()
             for url in e.mimeData().urls():
                 self.openFile(url.toLocalFile())
+
+            self.has_image = True
         else:
             e.ignore()
 
@@ -35,41 +46,49 @@ class DropLabel(QLabel):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-
         self.initUI()
+        self.model = TModel()
    
     def initUI(self):
-        # Utworzenie etykiet do wy渨ietlania obraz體
+        # Utworzenie etykiet do wy艣wietlania obraz贸w
         self.left_label = DropLabel()
         self.left_label.setMinimumSize(100, 100)
         self.right_label = DropLabel()
         self.right_label.setMinimumSize(100, 100)
         self.center_label = QLabel()
 
-        # Ustawienie etykiet jako miejsc do przeci筭ania i upuszczania
+        # Ustawienie etykiet jako miejsc do przeci膮gania i upuszczania
         self.left_label.setAcceptDrops(True)
         self.right_label.setAcceptDrops(True)
 
-        # Utworzenie poziomego suwaka i pod彻czenie slotu do jego sygna硊 warto渃i zmienionej
+        # Utworzenie poziomego suwaka i pod艂膮czenie slotu do jego sygna艂u warto艣ci zmienionej
         self.slider = QSlider(Qt.Horizontal)
         self.slider.valueChanged.connect(self.slider_value_changed)
 
-        # Utworzenie obiekt體 do wy渨ietlania obraz體 w 渞odkowej etykiecie
+        # Utworzenie obiekt贸w do wy艣wietlania obraz贸w w 艣rodkowej etykiecie
         self.view = QGraphicsView()
         self.scene = QGraphicsScene()
         self.view.setScene(self.scene)
         self.view.setRenderHint(QPainter.Antialiasing)
         self.view.setRenderHint(QPainter.SmoothPixmapTransform)
-        self.view.setMinimumSize(100, 100)
+        self.view.setMinimumSize(300, 300)
 
-        # Utworzenie layout體 i umieszczenie w nich element體 interfejsu
+        self.start_process_btn = QPushButton()
+        self.start_process_btn.setMinimumWidth(90)
+        self.start_process_btn.setText('Transfer')
+        self.start_process_btn.clicked.connect(self.transfer_btn_pushed)
+
+        # Utworzenie layout贸w i umieszczenie w nich element贸w interfejsu
         left_layout = QVBoxLayout()
         left_layout.addWidget(self.left_label)
         right_layout = QVBoxLayout()
         right_layout.addWidget(self.right_label)
         center_layout = QVBoxLayout()
         center_layout.addWidget(self.view)
-        center_layout.addWidget(self.slider)
+        slider_layout = QHBoxLayout()
+        slider_layout.addWidget(self.slider)
+        slider_layout.addWidget(self.start_process_btn)
+        center_layout.addItem(slider_layout)
         main_layout = QHBoxLayout()
         main_layout.addLayout(left_layout)
         main_layout.addLayout(center_layout)
@@ -78,19 +97,33 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
-        # Ustawienie wymiar體 okna i jego tytu硊
+        # Ustawienie wymiar贸w okna i jego tytu艂u
         self.setGeometry(300, 300, 800, 600)
-        self.setWindowTitle("aaa")
+        self.setWindowTitle("StyleTransfer")
 
     def slider_value_changed(self):
-        # TO DO zmiana obrazka w 渞odku
+        # TO DO zmiana obrazka w 艣rodku
+
+        return None
+
+    def transfer_btn_pushed(self):
+        if (self.left_label.has_image and self.right_label.has_image):
+            pathL = self.left_label.getImagePath()
+            pathR = self.right_label.getImagePath()
+            imgL = cv.imread(pathL)
+            imgR = cv.imread(pathR)
+            self.model.set_content_image(imgL)
+            self.model.set_style_image(imgR)
+            res = self.model.transfer_image(self.slider.value())
+
+            self.scene.addPixmap(convert_cv_to_Qt(res))
 
         return None
 
 if __name__ == "__main__":
     app = QApplication([])
     window = MainWindow()
-
+    
     window.show()
-
+    
     sys.exit(app.exec_())

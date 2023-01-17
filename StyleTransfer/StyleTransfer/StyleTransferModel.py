@@ -34,12 +34,12 @@ class StyleTransferModel():
 
 
     def set_style_image(self, style_image):
-        size = 512 if device == "cuda" else 128
+        size = 512 
         self.style_image = cv2.resize(style_image.copy(), (size, size)) / 255.0
 
 
     def set_content_image(self, content_image):
-        size = 512 if device == "cuda" else 128
+        size = 512 
         self.content_image = cv2.resize(content_image.copy(), (size, size)) / 255.0
 
         

@@ -4,12 +4,12 @@ from PyQt5.QtGui import QPixmap, QPainter, QImage
 from PyQt5.QtCore import Qt, QMimeData
 from StyleTransferModel import StyleTransferModel as TModel
 import cv2 as cv
+import numpy as np
 
 def convert_cv_to_Qt(cvImg):
-    height, width, channel = cvImg.shape
-    bytesPerLine = 3 * width
-    ret = QPixmap()
-    ret.convertFromImage(QImage(cvImg.data, width, height, bytesPerLine, QImage.Format_RGB888))
+    to_save = (cvImg * 255).astype(int)
+    cv.imwrite('temp.png', to_save)
+    ret = QPixmap('temp.png')
     return ret
 
 class DropLabel(QLabel):
@@ -18,6 +18,8 @@ class DropLabel(QLabel):
         self.setFrameShape(QFrame.Box)
         self.setAcceptDrops(True)
         self.has_image = False
+        self.maxHeight = 400
+        self.maxWidth = 400
 
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
@@ -37,7 +39,12 @@ class DropLabel(QLabel):
 
     def openFile(self, url):
         self.setMinimumSize(0, 0)
-        self.setPixmap(QPixmap(url))
+        pic = QPixmap(url)
+        if pic.width() > self.maxWidth or pic.height() > self.maxHeight:
+            self.setPixmap(pic.scaled(self.maxWidth, self.maxHeight, Qt.KeepAspectRatio))
+        else: 
+            self.setPixmap()
+        
         self.imagePath = url
 
     def getImagePath(self):
@@ -52,9 +59,9 @@ class MainWindow(QMainWindow):
     def initUI(self):
         # Utworzenie etykiet do wyświetlania obrazów
         self.left_label = DropLabel()
-        self.left_label.setMinimumSize(100, 100)
+        self.left_label.setMinimumSize(300, 300)
         self.right_label = DropLabel()
-        self.right_label.setMinimumSize(100, 100)
+        self.right_label.setMinimumSize(300, 300)
         self.center_label = QLabel()
 
         # Ustawienie etykiet jako miejsc do przeciągania i upuszczania
@@ -66,12 +73,9 @@ class MainWindow(QMainWindow):
         self.slider.valueChanged.connect(self.slider_value_changed)
 
         # Utworzenie obiektów do wyświetlania obrazów w środkowej etykiecie
-        self.view = QGraphicsView()
-        self.scene = QGraphicsScene()
-        self.view.setScene(self.scene)
-        self.view.setRenderHint(QPainter.Antialiasing)
-        self.view.setRenderHint(QPainter.SmoothPixmapTransform)
-        self.view.setMinimumSize(300, 300)
+        self.central_label = QLabel()
+        self.central_label.setFrameShape(QFrame.Box)
+        self.central_label.setMinimumSize(300, 300)
 
         self.start_process_btn = QPushButton()
         self.start_process_btn.setMinimumWidth(90)
@@ -84,7 +88,7 @@ class MainWindow(QMainWindow):
         right_layout = QVBoxLayout()
         right_layout.addWidget(self.right_label)
         center_layout = QVBoxLayout()
-        center_layout.addWidget(self.view)
+        center_layout.addWidget(self.central_label)
         slider_layout = QHBoxLayout()
         slider_layout.addWidget(self.slider)
         slider_layout.addWidget(self.start_process_btn)
@@ -116,9 +120,10 @@ class MainWindow(QMainWindow):
             self.model.set_style_image(imgR)
             res = self.model.transfer_image(self.slider.value())
 
-            self.scene.addPixmap(convert_cv_to_Qt(res))
+            self.central_label.setPixmap(convert_cv_to_Qt(res))
 
         return None
+
 
 if __name__ == "__main__":
     app = QApplication([])

@@ -7,10 +7,12 @@ import cv2 as cv
 import numpy as np
 
 def convert_cv_to_Qt(cvImg):
-    to_save = (cvImg * 255).astype(int)
-    cv.imwrite('temp.png', to_save)
-    ret = QPixmap('temp.png')
-    return ret
+    cvImg = (cvImg * 255).astype(np.uint8)
+    height, width, channel = cvImg.shape
+    bytesPerLine = 3 * width
+    cv.cvtColor(cvImg, cv.COLOR_BGR2RGB, cvImg)
+    qImg = QImage(cvImg.data, width, height, bytesPerLine, QImage.Format_RGB888)
+    return QPixmap.fromImage(qImg)
 
 class DropLabel(QLabel):
     def __init__(self):

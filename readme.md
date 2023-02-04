@@ -5,7 +5,7 @@ This repository is our implementation of [A Neural Algorithm of Artistic Style](
 
 |Original Image|Style Image|Transfer Results|
 | ------ | ------ | ------ |
-|<img src="https://github.com/SzymonOzog/StyleTransfer/blob/main/StyleTransfer/StyleTransfer/Results/silly_shiba.jpg?raw=true" width="200" height="200">|<img src="https://github.com/SzymonOzog/StyleTransfer/blob/main/StyleTransfer/StyleTransfer/Results/s2.jpg?raw=true" width="200" height="200">|<img src="https://github.com/SzymonOzog/StyleTransfer/blob/main/StyleTransfer/StyleTransfer/Results/TransferedShiba.png?raw=true"width="200" height="200">|
+|<img src="https://github.com/SzymonOzog/StyleTransfer/blob/main/Results/silly_shiba.jpg?raw=true" width="200" height="200">|<img src="https://github.com/SzymonOzog/StyleTransfer/blob/main/Results/s2.jpg?raw=true" width="200" height="200">|<img src="https://github.com/SzymonOzog/StyleTransfer/blob/main/Results/TransferedShiba.png?raw=true" width="200" height="200">|
 
 ## Tech
 The style gradients were calculated and applied using PyTorch 

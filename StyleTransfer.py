@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QHBoxLayout, QVBoxLayout, QSlider, QFileDialog, QGraphicsView, QGraphicsScene, QWidget, QFrame, QPushButton
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QHBoxLayout, QVBoxLayout, QLineEdit, QWidget, QFrame, QPushButton, QSlider, QFileDialog, QMessageBox
 from PyQt5.QtGui import QPixmap, QPainter, QImage
 from PyQt5.QtCore import Qt, QMimeData
 from StyleTransferModel import StyleTransferModel as TModel
@@ -70,9 +70,15 @@ class MainWindow(QMainWindow):
         self.left_label.setAcceptDrops(True)
         self.right_label.setAcceptDrops(True)
 
-        # Utworzenie poziomego suwaka i podłączenie slotu do jego sygnału wartości zmienionej
+        # Ścieżka do zapisu
+        self.save_to_label = QLabel("Save to:")
+        self.path_field = QLineEdit()
+        self.browse_btn = QPushButton("...")
+        self.save_btn = QPushButton("Save")
+        self.save_btn.clicked.connect(self.save)
+        self.browse_btn.clicked.connect(self.browse)
+
         self.slider = QSlider(Qt.Horizontal)
-        self.slider.valueChanged.connect(self.slider_value_changed)
 
         # Utworzenie obiektów do wyświetlania obrazów w środkowej etykiecie
         self.central_label = QLabel()
@@ -85,6 +91,13 @@ class MainWindow(QMainWindow):
         self.start_process_btn.clicked.connect(self.transfer_btn_pushed)
 
         # Utworzenie layoutów i umieszczenie w nich elementów interfejsu
+        omni_layout = QVBoxLayout()
+        upper_layout = QHBoxLayout()
+        upper_layout.addWidget(self.save_to_label)
+        upper_layout.addWidget(self.path_field)
+        upper_layout.addWidget(self.browse_btn)
+        upper_layout.addWidget(self.save_btn)
+        omni_layout.addItem(upper_layout)
         left_layout = QVBoxLayout()
         left_layout.addWidget(self.left_label)
         right_layout = QVBoxLayout()
@@ -99,18 +112,15 @@ class MainWindow(QMainWindow):
         main_layout.addLayout(left_layout)
         main_layout.addLayout(center_layout)
         main_layout.addLayout(right_layout)
+        omni_layout.addItem(main_layout)
         central_widget = QWidget()
-        central_widget.setLayout(main_layout)
+        central_widget.setLayout(omni_layout)
         self.setCentralWidget(central_widget)
 
         # Ustawienie wymiarów okna i jego tytułu
         self.setGeometry(300, 300, 800, 600)
         self.setWindowTitle("StyleTransfer")
 
-    def slider_value_changed(self):
-        # TO DO zmiana obrazka w środku
-
-        return None
 
     def transfer_btn_pushed(self):
         if (self.left_label.has_image and self.right_label.has_image):
@@ -120,11 +130,37 @@ class MainWindow(QMainWindow):
             imgR = cv.imread(pathR)
             self.model.set_content_image(imgL)
             self.model.set_style_image(imgR)
-            res = self.model.transfer_image(self.slider.value())
+            self.result = self.model.transfer_image(self.slider.value())
 
-            self.central_label.setPixmap(convert_cv_to_Qt(res))
+            self.central_label.setPixmap(convert_cv_to_Qt(self.result))
 
         return None
+
+
+    def save(self):
+        message = QMessageBox()
+        message.setIcon(QMessageBox.Warning)
+        message.setWindowTitle("Warning")
+        message.setText("Save path is empty or invalid! Please choose a valid one.")
+        message.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        if (self.path_field.text() == ""):
+            if(message.exec() == QMessageBox.Ok):
+                self.path_field.setText(QFileDialog.getSaveFileName(self, "Open text file", "", "Images(*.png)")[0])
+            else:
+                return None
+
+        if (self.path_field.text().split(".")[-1] != "png"):
+            if(message.exec() == QMessageBox.Ok):
+                self.path_field.setText(QFileDialog.getSaveFileName(self, "Open text file", "", "Images(*.png)")[0])
+            else:
+                return None
+
+        cvImg = (self.result * 255).astype(np.uint8)
+        cv.imwrite(self.path_field.text(), cvImg)
+
+        
+    def browse(self):
+        self.path_field.setText(QFileDialog.getSaveFileName(self, "Open text file", "", "Images(*.png)")[0])
 
 
 if __name__ == "__main__":
